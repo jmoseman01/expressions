@@ -1,0 +1,326 @@
+
+import_closed TypeCheck
+
+// ===========================================================================
+module BasicView(precision = 0, verbosity=0)
+// ===========================================================================
+
+strategy main:
+        <fileList>_in -> <fileList>_in
+        if { 
+               // sml.showEnvironment()              
+               // andalso 
+               TDL processFile <fileList>_in
+        } 
+
+
+
+strategy processFile:
+    <file>_id
+    ->
+    <file>_id    
+    if {
+            sml.viewTerm(<file>_id)
+            andalso sml.nl()
+            
+            andalso <elementList>_in = sml.multiFileInput( <file>_id )
+
+            andalso sml.declareTable("Operators Used") 
+            andalso sml.declareCounter("Operators Used", "if-then-else",0) 
+            andalso sml.declareCounter("Operators Used", "orelse",0) 
+            andalso sml.declareCounter("Operators Used", "andalso",0) 
+            andalso sml.declareCounter("Operators Used", "not",0)
+            andalso sml.declareCounter("Operators Used", "<",0) 
+            andalso sml.declareCounter("Operators Used", "<=",0) 
+            andalso sml.declareCounter("Operators Used", ">",0) 
+            andalso sml.declareCounter("Operators Used", ">=",0) 
+            andalso sml.declareCounter("Operators Used", "=",0) 
+            andalso sml.declareCounter("Operators Used", "<>",0) 
+            andalso sml.declareCounter("Operators Used", "+",0) 
+            andalso sml.declareCounter("Operators Used", "-",0) 
+            andalso sml.declareCounter("Operators Used", "*",0) 
+            andalso sml.declareCounter("Operators Used", "div",0) 
+            andalso sml.declareCounter("Operators Used", "mod",0) 
+
+            andalso sml.declareTable("Metrics") 
+            andalso sml.declareCounter("Metrics", "sum of constructs",0) 
+            andalso sml.declareCounter("Metrics", "mean",0) 
+            andalso sml.declareCounter("Metrics", "variance",0) 
+            andalso sml.declareCounter("Metrics", "standard deviation",0) 
+            andalso sml.declareCounter("Metrics", "correct",0) 
+            andalso sml.declareCounter("Metrics", "incorrect",0) 
+
+
+            andalso process <elementList>_in
+
+            andalso sml.tableOp("sum", "Operators Used", "Metrics", "sum of constructs")
+            andalso sml.tableOp("arithmetic_mean", "Operators Used", "Metrics", "mean")
+            andalso sml.tableOp("variance", "Operators Used", "Metrics", "variance")
+            andalso sml.tableOp("standard_deviation", "Operators Used", "Metrics", "standard deviation")
+
+            andalso sml.showTable("Operators Used")
+            andalso sml.showTable("Metrics")
+
+            andalso sml.property_01()
+            andalso sml.output("\n\n\n")
+    }
+
+// ===========================================================================
+strategy process:
+
+    <elementList>_in 
+    -> 
+    <elementList>_in 
+    if { 
+            s := elementList[:] <element>_1 ; <elementList>_1 [:]
+                 ->
+                 elementList[:] <element>_2 ; <elementList>_2 [:]
+                 if {          <element>_2     = Action <element>_1
+                      andalso <elementList>_2 = s <elementList>_1
+                 }
+
+                 <+
+                 elementList[:] [:] 
+                 ->
+                 elementList[:] [:]
+
+            andalso <elementList>_out = s <elementList>_in
+
+            andalso TDL CollectMetrics <elementList>_in
+            andalso sml.ppTo_stdOut(<elementList>_out)
+    }
+        
+// ===========================================================================
+strategy Action:
+    element[:] <expression>_1 -> <expression>_step [:]
+    ->
+    element[:] correct [:]
+    if { <expression>_step = Step <expression>_1 
+         andalso not(expression[:] error [:] = TypeCheck.process <expression>_1)
+         andalso sml.incCounter("Metrics", "correct", 1 )
+    }
+
+    <+
+
+    element[:] <expression>_1 -> <expression>_step [:]
+    ->
+    element[:] incorrect [:]
+    if { sml.incCounter("Metrics", "incorrect", 1 ) }
+
+    <+
+
+    element[:] <expression>_1 [:]
+    ->
+    element[:] incorrect [:]
+    if { sml.incCounter("Metrics", "incorrect", 1 ) }
+
+
+// ===========================================================================
+strategy Step:
+    <expression>_1
+    ->
+    BUL Rules <expression>_1
+
+strategy Rules:
+    Conditional
+    <+
+    Logic
+    <+
+    RelOp
+    <+
+    Addition
+    <+
+    Multiplication
+    <+
+    Paren
+
+strategy Conditional:
+
+    expression[:] if <expression>_1 then <expression>_2 else <expression>_3 [:]
+    ->
+    expression[:] ( if <expression>_1 then <expression>_2 else <expression>_3 ) [:]
+
+
+strategy Logic:
+
+    expression[:] <expression>_1 orelse <expression>_2 [:]
+    ->
+    expression[:] ( <expression>_1 orelse <expression>_2 ) [:]
+
+    <+
+
+    expression[:] <expression>_1 andalso <expression>_2 [:]
+    ->
+    expression[:] ( <expression>_1 andalso <expression>_2 ) [:]
+
+    <+
+    
+    factor[:] not <base>_1 [:]
+    ->
+    factor[:] ( not <base>_1 ) [:]
+
+
+strategy RelOp:
+
+    bfactor[:] <expr>_1 < <expr>_2 [:]
+    ->
+    bfactor[:] ( <expr>_1 < <expr>_2 ) [:]
+    
+    <+
+
+    bfactor[:] <expr>_1 <= <expr>_2 [:]
+    ->
+    bfactor[:] ( <expr>_1 <= <expr>_2 ) [:]
+
+    <+
+
+    bfactor[:] <expr>_1 > <expr>_2 [:]
+    ->
+    bfactor[:] ( <expr>_1 > <expr>_2 ) [:]
+
+    <+
+
+    bfactor[:] <expr>_1 >= <expr>_2 [:]
+    ->
+    bfactor[:] ( <expr>_1 >= <expr>_2 ) [:]
+
+    <+
+
+    bfactor[:] <bfactor>_1 = <expr>_2 [:]
+    ->
+    bfactor[:] ( <bfactor>_1 = <expr>_2 ) [:]
+
+    <+
+
+    bfactor[:] <bfactor>_1 <> <expr>_2 [:]
+    ->
+    bfactor[:] ( <bfactor>_1 <> <expr>_2 ) [:]
+
+
+strategy Addition:
+
+    expr[:] <expr>_1 + <term>_2 [:]
+    ->
+    expr[:] ( <expr>_1 + <term>_2 ) [:]
+
+    <+
+
+    expr[:] <expr>_1 - <term>_2 [:]
+    ->
+    expr[:] ( <expr>_1 - <term>_2 ) [:]
+
+strategy Multiplication:
+
+    term[:] <term>_1 * <factor>_1 [:]
+    ->
+    term[:] ( <term>_1 * <factor>_1 ) [:]
+
+    <+
+
+    term[:] <term>_1 div <factor>_1 [:]
+    ->
+    term[:] ( <term>_1 div <factor>_1 ) [:]
+
+    <+
+
+    term[:] <term>_1 mod <factor>_1 [:]
+    ->
+    term[:] ( <term>_1 mod <factor>_1 ) [:]
+
+strategy Paren:
+    base[:] ( <value>_1 ) [:]
+    ->
+    base[:] <value>_1 [:]
+
+    <+
+
+    base[:] ( ( <expression>_1 ) ) [:]
+    ->
+    base[:] ( <expression>_1 ) [:]
+
+
+// ===========================================================================
+strategy CollectMetrics:
+
+    expression[:] if <expression>_1 then <expression>_2 else <expression>_3 [:]
+    ->
+    expression[:] if <expression>_1 then <expression>_2 else <expression>_3 [:]
+    if { sml.incCounter("Operators Used", "if-then-else", 1 ) }
+
+    <+
+
+    <orelseOp>_1 -> <orelseOp>_1
+    if { sml.incCounter("Operators Used", "orelse", 1 ) }
+
+    <+
+
+    <andalsoOp>_1 -> <andalsoOp>_1
+    if { sml.incCounter("Operators Used", "andalso", 1 ) }
+
+    <+
+
+    id[:] not [:] -> id[:] not [:]
+    if { sml.incCounter("Operators Used", "not", 1 ) }
+
+    <+
+
+    relOp[:] < [:] -> relOp[:] < [:]
+    if { sml.incCounter("Operators Used", "<", 1 ) }
+
+    <+
+
+    relOp[:] <= [:] -> relOp[:] <= [:]
+    if { sml.incCounter("Operators Used", "<=", 1 ) }
+
+    <+
+
+    relOp[:] > [:] -> relOp[:] > [:]
+    if { sml.incCounter("Operators Used", ">", 1 ) }
+
+
+    <+
+
+    relOp[:] >= [:] -> relOp[:] <= [:]
+    if { sml.incCounter("Operators Used", ">=", 1 ) }
+
+
+    <+
+
+    eqOp[:] = [:] -> eqOp[:] = [:]
+    if { sml.incCounter("Operators Used", "=", 1 ) }
+
+    <+
+
+    eqOp[:] <> [:] -> eqOp[:] <> [:]
+    if { sml.incCounter("Operators Used", "<>", 1 ) }
+
+    <+
+
+    addOp[:] + [:] -> addOp[:] + [:]
+    if { sml.incCounter("Operators Used", "+", 1 ) }
+
+    <+
+
+    addOp[:] - [:] -> addOp[:] - [:]
+    if { sml.incCounter("Operators Used", "-", 1 ) }
+
+    <+
+
+    multOp[:] * [:] -> multOp[:] * [:]
+    if { sml.incCounter("Operators Used", "*", 1 ) }
+
+    <+
+
+    multOp[:] div [:] -> multOp[:] div [:]
+    if { sml.incCounter("Operators Used", "div", 1 ) }
+
+    <+
+
+    multOp[:] mod [:] -> multOp[:] mod [:]
+    if { sml.incCounter("Operators Used", "mod", 1 ) }
+
+// ===========================================================================
+end // Module
+// ===========================================================================
+
+

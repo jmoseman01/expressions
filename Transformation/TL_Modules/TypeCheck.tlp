@@ -1,0 +1,116 @@
+
+
+// ===========================================================================
+module TypeCheck(precision = 0, verbosity=0)
+// ===========================================================================
+
+strategy process: BUL Rules
+
+// ===========================================================================
+strategy Rules:
+
+    Conditional
+    <+
+    LogicOp
+    <+ 
+    RelOp
+    <+
+    EqOp
+    <+
+    Addition
+    <+
+    Multiplication
+    <+
+    Paren
+    <+
+    Value
+
+// ===========================================================================
+strategy Conditional:
+
+    expression[:] if bool then <typeId>_1 else <typeId>_1 [:] -> expression[:] <typeId>_1 [:]
+    <+
+    expression[:] if <typeId>_1 then <typeId>_2 else <typeId>_3 [:] -> expression[:] error [:]
+
+// ===========================================================================
+strategy LogicOp:
+
+    expression[:] bool orelse bool [:] -> expression[:] bool [:]
+    <+
+    expression[:] <typeId>_1 orelse <typeId>_2 [:] -> expression[:] error [:]
+
+    <+
+
+    expression[:] bool andalso bool [:] -> expression[:] bool [:]
+    <+
+    expression[:] <typeId>_1 andalso <typeId>_2 [:] -> expression[:] error [:]
+
+    <+
+    
+    factor[:] not bool [:] -> factor[:] not bool [:]
+    <+
+    factor[:] not <typeId>_1 [:] -> factor[:] error [:]
+
+strategy RelOp:
+
+    bfactor[:] int <relOp>_1 int [:] -> bfactor[:] bool [:]
+    <+
+    bfactor[:] <typeId>_1 <relOp>_1 <typeId>_2 [:] -> bfactor[:] error [:]
+
+strategy EqOp:
+
+    bfactor[:] <typeId>_1 <eqOp>_1 <typeId>_1 [:] -> bfactor[:] bool [:]
+    <+
+    bfactor[:] <typeId>_1 <eqOp>_1 <typeId>_2 [:] -> bfactor[:] error [:]
+
+// ===========================================================================
+strategy Addition:
+
+    expr[:] int + int [:] -> expr[:] int [:]
+    <+
+    expr[:] <typeId>_1 + <typeId>_2 [:] -> expr[:] error [:]
+
+    <+
+
+    expr[:] int - int [:] -> expr[:] int [:]
+    <+
+    expr[:] <typeId>_1 - <typeId>_2 [:] -> expr[:] error [:]
+
+strategy Multiplication:
+
+    term[:] int * int [:] -> term[:] int [:]
+    <+
+    term[:] <typeId>_1 * <typeId>_2 [:] -> term[:] error [:]
+
+    <+
+
+    term[:] int div int [:] -> term[:] int [:]
+    <+
+    term[:] <typeId>_1 div <typeId>_2 [:] -> term[:] error [:]
+
+    <+
+
+    term[:] int mod int [:] -> term[:] int [:]
+    <+
+    term[:] <typeId>_1 mod <typeId>_2 [:] -> term[:] error [:]
+
+// ===========================================================================
+strategy Paren:
+    expression[:] ( <typeId>_1 ) [:] -> expression[:] <typeId>_1 [:]
+    <+
+    base[:] ( <typeId>_1 ) [:] -> base[:] <typeId>_1 [:]
+
+// ===========================================================================
+strategy Value:
+
+    base[:] <integer>_1 [:] -> base[:] int [:]
+    <+
+    base[:] <boolean>_1 [:] -> base[:] bool [:]
+
+
+
+// ===========================================================================
+end // Module
+// ===========================================================================
+
+

@@ -1,0 +1,70 @@
+USE_LR_PARSER
+
+elementList
+
+(* ---------- Precedence and associativity of operators -------------------------------------------------- *)
+%LEFT_ASSOC   "if"                                                            "L0" .(* lowest prec *)
+%LEFT_ASSOC   "orelse"                                                        "L1" .
+%LEFT_ASSOC   "andalso"                                                       "L2" .
+
+
+
+(* ======================================================================================================= *)
+<elementList>           ::= <element> ";" <elementList> | <epsilon>                                        .
+    
+<element>               ::= <small_step_transition>
+                          | <expression>                                                                   .
+
+<small_step_transition> ::= <expression> "->" <expression>                                                 .
+
+<expressionList>        ::= <expression> "," <expressionList>
+                          | <expression>                                                                   .
+
+<expression>            ::= "if" <expression> "then" <expression> "else" <expression>           %PREC "L0" .
+<expression>            ::= <expression> <orelseOp>  <expression>                               %PREC "L1" .
+<expression>            ::= <expression> <andalsoOp> <expression>                               %PREC "L2" .
+<expression>            ::= <bfactor>                                                                      .
+
+<orelseOp>              ::= "orelse"                                                                       .
+<andalsoOp>             ::= "andalso"                                                                      .
+
+(* ======================================================================================================= *)
+<bfactor>       ::= <expr>
+                  | <expr> <relOp>  <expr>
+                  | <bfactor> <eqOp> <expr>                                                                 .
+
+<relOp>         ::= "<" | "<=" | ">" | ">="                                                                 .
+<eqOp>          ::= "=" | "<>"                                                                              .
+
+(* ======================================================================================================= *)
+<expr>          ::= <expr> <addOp> <term> | <term>                                                          .
+<addOp>         ::= "+" | "-"                                                                               .
+
+<term>          ::= <term> <multOp> <factor> | <factor>                                                     .
+<multOp>        ::= "*" | "div" | "mod"                                                                     .
+
+<factor>        ::= <functionApp>                                                                           .
+
+(* ======================================================================================================= *)
+<functionApp>   ::= <functionApp> <base>
+                  | <base>                                                                          .
+
+<base>          ::= "~"
+                  | <id>
+                  | <typeId>
+                  | <value>
+                  | <tuple>
+                  | "correct"   
+                  | "incorrect"                                                                     .
+
+<tuple>         ::= "(" [ <expressionList> ] ")"                                                    .
+
+<value>         ::= <integer> | <boolean>                                                           .
+
+<integer>       ::= integer_value                                                                   .
+<boolean>       ::= boolean_value                                                                   .
+<id>            ::= ident                                                                           .
+<typeId>        ::= "int" | "bool" | "error"                                                        .
+
+(* ======================================================================================================= *)
+<epsilon>   ::= .
